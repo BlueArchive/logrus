@@ -141,6 +141,12 @@ func (entry *Entry) Info(args ...interface{}) {
 	}
 }
 
+func (entry *Entry) Account(args ...interface{}) {
+	if entry.Logger.Level >= AccountLevel {
+		entry.log(AccountLevel, fmt.Sprint(args...))
+	}
+}
+
 func (entry *Entry) Warn(args ...interface{}) {
 	if entry.Logger.Level >= WarnLevel {
 		entry.log(WarnLevel, fmt.Sprint(args...))

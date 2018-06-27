@@ -19,6 +19,8 @@ func (level Level) String() string {
 		return "debug"
 	case InfoLevel:
 		return "info"
+	case AccountLevel:
+		return "account"
 	case WarnLevel:
 		return "warning"
 	case ErrorLevel:
@@ -77,6 +79,8 @@ const (
 	ErrorLevel
 	// WarnLevel level. Non-critical entries that deserve eyes.
 	WarnLevel
+	// AccountLevel entries get routed to the centralized logging system via Fluentd
+	AccountLevel
 	// InfoLevel level. General operational entries about what's going on inside the
 	// application.
 	InfoLevel
