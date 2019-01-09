@@ -22,14 +22,26 @@ func (hooks LevelHooks) Add(hook Hook) {
 	}
 }
 
+type HookFailure struct {
+	Hook Hook
+	Err error
+}
+type HookFailures []HookFailure
+
 // Fire all the hooks for the passed level. Used by `entry.log` to fire
 // appropriate hooks for a log entry.
-func (hooks LevelHooks) Fire(level Level, entry *Entry) error {
+// don't stop if a hook fails to fire - other hooks should get their chance
+// return map of failed hook to err
+func (hooks LevelHooks) Fire(level Level, entry *Entry) (hookFailures *HookFailures) {
+	// aggregate failed hooks; we want all of them to fire
 	for _, hook := range hooks[level] {
 		if err := hook.Fire(entry); err != nil {
-			return err
+			if hookFailures == nil {
+				hookFailures = &HookFailures{}
+			}
+			*hookFailures = append(*hookFailures, HookFailure{Hook:hook, Err:err})
 		}
 	}
 
-	return nil
+	return hookFailures
 }

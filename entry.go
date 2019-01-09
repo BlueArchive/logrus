@@ -3,7 +3,6 @@ package logrus
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 )
@@ -87,47 +86,45 @@ func (entry *Entry) WithFields(fields Fields) *Entry {
 
 // This function is not declared with a pointer value because otherwise
 // race conditions will occur when using multiple goroutines
-func (entry Entry) log(level Level, msg string) {
-	var buffer *bytes.Buffer
+func (entry Entry) Log(level Level, msg string) *HookFailures{
+	//var buffer *bytes.Buffer
 	entry.Time = time.Now()
 	entry.Level = level
 	entry.Message = msg
 
-	if err := entry.Logger.Hooks.Fire(level, &entry); err != nil {
-		entry.Logger.mu.Lock()
-		fmt.Fprintf(os.Stderr, "Failed to fire hook: %v\n", err)
-		entry.Logger.mu.Unlock()
-	}
-	buffer = bufferPool.Get().(*bytes.Buffer)
-	buffer.Reset()
-	defer bufferPool.Put(buffer)
-	entry.Buffer = buffer
-	serialized, err := entry.Logger.Formatter.Format(&entry)
-	entry.Buffer = nil
-	if err != nil {
-		entry.Logger.mu.Lock()
-		fmt.Fprintf(os.Stderr, "Failed to obtain reader, %v\n", err)
-		entry.Logger.mu.Unlock()
-	} else {
-		entry.Logger.mu.Lock()
-		_, err = entry.Logger.Out.Write(serialized)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to write to log, %v\n", err)
-		}
-		entry.Logger.mu.Unlock()
-	}
+	//fire all hooks
+	return entry.Logger.Hooks.Fire(level, &entry)
 
-	// To avoid Entry#log() returning a value that only would make sense for
-	// panic() to use in Entry#Panic(), we avoid the allocation by checking
-	// directly here.
-	if level <= PanicLevel {
-		panic(&entry)
-	}
+	//buffer = bufferPool.Get().(*bytes.Buffer)
+	//buffer.Reset()
+	//defer bufferPool.Put(buffer)
+	//entry.Buffer = buffer
+	//serialized, err := entry.Logger.Formatter.Format(&entry)
+	//entry.Buffer = nil
+	//if err != nil {
+	//	entry.Logger.mu.Lock()
+	//	fmt.Fprintf(os.Stderr, "Failed to obtain reader, %v\n", err)
+	//	entry.Logger.mu.Unlock()
+	//} else {
+	//	entry.Logger.mu.Lock()
+	//	_, err = entry.Logger.Out.Write(serialized)
+	//	if err != nil {
+	//		fmt.Fprintf(os.Stderr, "Failed to write to log, %v\n", err)
+	//	}
+	//	entry.Logger.mu.Unlock()
+	//}
+	//
+	//// To avoid Entry#log() returning a value that only would make sense for
+	//// panic() to use in Entry#Panic(), we avoid the allocation by checking
+	//// directly here.
+	//if level <= PanicLevel {
+	//	panic(&entry)
+	//}
 }
 
 func (entry *Entry) Debug(args ...interface{}) {
 	if entry.Logger.Level >= DebugLevel {
-		entry.log(DebugLevel, fmt.Sprint(args...))
+		entry.Log(DebugLevel, fmt.Sprint(args...))
 	}
 }
 
@@ -137,19 +134,19 @@ func (entry *Entry) Print(args ...interface{}) {
 
 func (entry *Entry) Info(args ...interface{}) {
 	if entry.Logger.Level >= InfoLevel {
-		entry.log(InfoLevel, fmt.Sprint(args...))
+		entry.Log(InfoLevel, fmt.Sprint(args...))
 	}
 }
 
 func (entry *Entry) Account(args ...interface{}) {
 	if entry.Logger.Level >= AccountLevel {
-		entry.log(AccountLevel, fmt.Sprint(args...))
+		entry.Log(AccountLevel, fmt.Sprint(args...))
 	}
 }
 
 func (entry *Entry) Warn(args ...interface{}) {
 	if entry.Logger.Level >= WarnLevel {
-		entry.log(WarnLevel, fmt.Sprint(args...))
+		entry.Log(WarnLevel, fmt.Sprint(args...))
 	}
 }
 
@@ -159,20 +156,20 @@ func (entry *Entry) Warning(args ...interface{}) {
 
 func (entry *Entry) Error(args ...interface{}) {
 	if entry.Logger.Level >= ErrorLevel {
-		entry.log(ErrorLevel, fmt.Sprint(args...))
+		entry.Log(ErrorLevel, fmt.Sprint(args...))
 	}
 }
 
 func (entry *Entry) Fatal(args ...interface{}) {
 	if entry.Logger.Level >= FatalLevel {
-		entry.log(FatalLevel, fmt.Sprint(args...))
+		entry.Log(FatalLevel, fmt.Sprint(args...))
 	}
 	Exit(1)
 }
 
 func (entry *Entry) Panic(args ...interface{}) {
 	if entry.Logger.Level >= PanicLevel {
-		entry.log(PanicLevel, fmt.Sprint(args...))
+		entry.Log(PanicLevel, fmt.Sprint(args...))
 	}
 	panic(fmt.Sprint(args...))
 }
